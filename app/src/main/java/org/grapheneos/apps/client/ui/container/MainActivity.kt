@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -134,6 +135,15 @@ class MainActivity : AppCompatActivity() {
 
         views.searchInput.addTextChangedListener { editable ->
             searchState.updateQuery(editable?.trim()?.toString() ?: "")
+        }
+        views.searchInput.setOnEditorActionListener { input, actionId, _ ->
+            when (actionId) {
+                EditorInfo.IME_ACTION_SEARCH -> {
+                    searchState.updateQuery(input.text.trim().toString())
+                    true
+                }
+                else -> false
+            }
         }
     }
 
