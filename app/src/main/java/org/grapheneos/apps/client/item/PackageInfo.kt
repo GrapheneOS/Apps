@@ -12,10 +12,10 @@ import java.io.File
  * Package name, active session id {@link PackageInstaller.EXTRA_SESSION_ID} ,
  * Installed info (like required installation or update available etc)
  * Downloading/Installing Info {@link TaskInfo}
- * @property id the package name as Id.
+ * @property pkgName the package name
  * */
 data class PackageInfo(
-    val id: String,
+    val pkgName: String,
     val sessionInfo: SessionInfo,
     val selectedVariant: PackageVariant,
     val allVariant: List<PackageVariant>,
@@ -32,15 +32,15 @@ data class PackageInfo(
             //if the app is installed purge any cached apk files
             if (installedVersion == latestVersion) {
                 selectedVariant.apply {
-                    getResultRootDir(context).deleteRecursively()
-                    getDownloadRootDir(context).deleteRecursively()
+                    getResultRootDir(context, pkgName).deleteRecursively()
+                    getDownloadRootDir(context, pkgName).deleteRecursively()
 
                 }
             } else {
                 // else only purge unneeded cached apk files
                 selectedVariant.apply {
-                    getResultRootDir(context).cleanOldFiles(getResultDir(context))
-                    getDownloadRootDir(context).cleanOldFiles(getResultDir(context))
+                    getResultRootDir(context, pkgName).cleanOldFiles(getResultDir(context, pkgName))
+                    getDownloadRootDir(context, pkgName).cleanOldFiles(getResultDir(context, pkgName))
                 }
             }
         }
@@ -58,27 +58,27 @@ data class PackageInfo(
     }
 
     fun withUpdatedInstallStatus(newStatus: InstallStatus) = PackageInfo(
-        id, sessionInfo, selectedVariant, allVariant, taskInfo,
+        pkgName, sessionInfo, selectedVariant, allVariant, taskInfo,
         downloadStatus, newStatus
     )
 
     fun withUpdatedDownloadStatus(newStatus: DownloadStatus?) = PackageInfo(
-        id, sessionInfo, selectedVariant, allVariant, taskInfo,
+        pkgName, sessionInfo, selectedVariant, allVariant, taskInfo,
         newStatus, installStatus
     )
 
     fun withUpdatedSession(newSessionInfo: SessionInfo) = PackageInfo(
-        id, newSessionInfo, selectedVariant, allVariant, taskInfo,
+        pkgName, newSessionInfo, selectedVariant, allVariant, taskInfo,
         downloadStatus, installStatus
     )
 
     fun withUpdatedTask(newTaskInfo: TaskInfo) = PackageInfo(
-        id, sessionInfo, selectedVariant, allVariant, newTaskInfo,
+        pkgName, sessionInfo, selectedVariant, allVariant, newTaskInfo,
         downloadStatus, installStatus
     )
 
     fun withUpdatedVariant(newVariant: PackageVariant) = PackageInfo(
-        id, sessionInfo, newVariant, allVariant, taskInfo,
+        pkgName, sessionInfo, newVariant, allVariant, taskInfo,
         downloadStatus, installStatus
     )
 
