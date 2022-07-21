@@ -58,8 +58,14 @@ class MainScreen : Fragment() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return item.onNavDestinationSelected(findNavController()) ||
+        return when (item.itemId) {
+            R.id.refresh -> {
+                refresh(true)
+                true
+            }
+            else -> item.onNavDestinationSelected(findNavController()) ||
                 super.onOptionsItemSelected(item)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -101,6 +107,9 @@ class MainScreen : Fragment() {
             thirdPartyApps.setOnCheckedChangeListener { _, isChecked ->
                 state.modifyFilter(state.buildByGrapheneOs, isChecked)
             }
+            swipeRefresh.setOnRefreshListener {
+                refresh(isForcedUpdate = !lastItems.isNullOrEmpty())
+            }
         }
 
         appsViewModel.packageLiveData.observe(
@@ -110,12 +119,11 @@ class MainScreen : Fragment() {
                 val packagesInfoMap = newValue ?: return@runOnUiThread
                 val sent = InstallablePackageInfo.fromMap(newValue)
                 lastItems = sent
-                updateUi(isSyncing = false, packagesInfoMap.isEmpty())
+                updateUi(isSyncingResultSuccess = !packagesInfoMap.isEmpty())
                 appsListAdapter.submitList(sent.applyFilter(state.getLastFilter()))
             }
         }
 
-        binding.retrySync.setOnClickListener { refresh() }
         refresh()
     }
 
@@ -153,10 +161,10 @@ class MainScreen : Fragment() {
         )
     }
 
-    private fun refresh() {
-        updateUi(isSyncing = true, canRetry = false)
-        appsViewModel.refreshMetadata {
-            updateUi(isSyncing = false, canRetry = !it.isSuccessFull)
+    private fun refresh(isForcedUpdate: Boolean = false) {
+        updateUi()
+        appsViewModel.refreshMetadata(isForcedUpdate) {
+            updateUi(isSyncingResultSuccess = it.isSuccessFull)
             if (it !is MetadataCallBack.Success) {
                 showSnackbar(
                     it.genericMsg + if (it.error != null) "\n${it.error.localizedMessage}" else "",
@@ -166,14 +174,20 @@ class MainScreen : Fragment() {
         }
     }
 
-    private fun updateUi(isSyncing: Boolean = true, canRetry: Boolean = false) {
+    private fun updateUi(isSyncingResultSuccess: Boolean? = null) {
+        val isFirstScreen = lastItems.isNullOrEmpty()
+        val isSyncing = isSyncingResultSuccess == null
+        val isSuccess = isSyncingResultSuccess ?: false
         runOnUiThread {
             binding.apply {
+                swipeRefresh.isRefreshing = isSyncing
+                swipeRefresh.isGone = isFirstScreen && isSyncing
+                if (!isFirstScreen && !isSuccess) return@runOnUiThread
                 syncing.isVisible = isSyncing
                 syncingProgressbar.isVisible = isSyncing
-                appsRecyclerView.isGone = isSyncing || canRetry
-                retrySync.isVisible = !isSyncing && canRetry
-                filter.isVisible = !isSyncing && !canRetry
+                syncingFailed.isGone = isSuccess || isSyncing
+                appsRecyclerView.isGone = !isSuccess
+                filter.isVisible = isSuccess
             }
         }
     }

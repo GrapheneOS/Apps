@@ -36,6 +36,7 @@
     <string name="serverUnexpectedResponse">Server responded with unexpected HTTP code</string>
     <string name="pending_install">Pending</string>
 
+    <string name="syncingHasFailed">Sync failed, swipe down to resync and retry</string>
     <string name="syncingMetadata">Syncing metadata</string>
     <string name="syncUnfinished">Sync has not yet finished</string>
 
@@ -79,6 +80,7 @@
     <string name="latest">Latest</string>
 
     <!--main_menu.xml-->
+    <string name="refresh">Refresh</string>
     <string name="settings">Settings</string>
     <string name="update_all">Update all</string>
     <string name="xUpdates">%d updates</string>
