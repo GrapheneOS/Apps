@@ -7,6 +7,8 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
@@ -53,19 +55,23 @@ class MainScreen : Fragment() {
         return binding.root
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.main_menu, menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return item.onNavDestinationSelected(findNavController()) ||
-                super.onOptionsItemSelected(item)
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setHasOptionsMenu(true)
+        (requireActivity() as MenuHost).addMenuProvider(
+            object : MenuProvider {
+                override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                    menuInflater.inflate(R.menu.main_menu, menu)
+                }
+
+                override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                    return menuItem.onNavDestinationSelected(findNavController())
+                }
+
+            },
+            viewLifecycleOwner
+        )
+
         val appsListAdapter = AppsListAdapter(this)
         postponeEnterTransition()
         view.doOnPreDraw {
@@ -116,6 +122,13 @@ class MainScreen : Fragment() {
         }
 
         binding.retrySync.setOnClickListener { refresh() }
+        binding.swipeToRefreshView.setOnRefreshListener {
+            if (appsViewModel.isDownloading) {
+                binding.swipeToRefreshView.isRefreshing = false
+                return@setOnRefreshListener
+            }
+            refresh(true)
+        }
         refresh()
     }
 
@@ -135,6 +148,8 @@ class MainScreen : Fragment() {
         }
     }
 
+    fun cancelDownload(pkgName: String) = appsViewModel.cancelDownload(pkgName)
+
     fun navigateToDetailsScreen(
         root: View,
         appName: String,
@@ -153,9 +168,9 @@ class MainScreen : Fragment() {
         )
     }
 
-    private fun refresh() {
+    private fun refresh(force: Boolean = false) {
         updateUi(isSyncing = true, canRetry = false)
-        appsViewModel.refreshMetadata {
+        appsViewModel.refreshMetadata(force) {
             updateUi(isSyncing = false, canRetry = !it.isSuccessFull)
             if (it !is MetadataCallBack.Success) {
                 showSnackbar(
@@ -174,6 +189,10 @@ class MainScreen : Fragment() {
                 appsRecyclerView.isGone = isSyncing || canRetry
                 retrySync.isVisible = !isSyncing && canRetry
                 filter.isVisible = !isSyncing && !canRetry
+                swipeToRefreshView.apply {
+                    isRefreshing = isRefreshing && isSyncing
+                    isEnabled = !isSyncing
+                }
             }
         }
     }
